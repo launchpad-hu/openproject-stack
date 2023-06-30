@@ -55,33 +55,24 @@ services:
       POSTGRES_DB: openproject
     networks:
       - backend
-    deploy:
-      labels:
-        <<: *traefik_disable
 
   cache:
     image: memcached
     <<: *restart_policy
     networks:
       - backend
-    deploy:
-      labels:
-        <<: *traefik_disable
 
-  proxy:
-    <<: [*image, *restart_policy]
-    command: "./docker/prod/proxy"
-    environment:
-      APP_HOST: web
-      OPENPROJECT_RAILS__RELATIVE__URL__ROOT: "${OPENPROJECT_RAILS__RELATIVE__URL__ROOT:-}"
-    depends_on:
-      - web
-    networks:
-      - traefik-net
-      - frontend
-    deploy:
-      labels:
-        <<: *traefik
+#  proxy:
+#    <<: [*image, *restart_policy]
+#    command: "./docker/prod/proxy"
+#    environment:
+#      APP_HOST: web
+#      OPENPROJECT_RAILS__RELATIVE__URL__ROOT: "${OPENPROJECT_RAILS__RELATIVE__URL__ROOT:-}"
+#    depends_on:
+#      - web
+#    networks:
+#      - traefik-net
+#      - frontend
 
   web:
     <<: *app
@@ -103,7 +94,7 @@ services:
       start_period: 30s
     deploy:
       labels:
-        <<: *traefik_disable
+        <<: *traefik_
 
   autoheal:
     image: willfarrell/autoheal:1.2.0
@@ -113,9 +104,6 @@ services:
       AUTOHEAL_CONTAINER_LABEL: autoheal
       AUTOHEAL_START_PERIOD: 600
       AUTOHEAL_INTERVAL: 30
-    deploy:
-      labels:
-        <<: *traefik_disable
 
   worker:
     <<: *app
@@ -126,9 +114,6 @@ services:
       - db
       - cache
       - seeder
-    deploy:
-      labels:
-        <<: *traefik_disable
 
   cron:
     <<: *app
@@ -139,9 +124,6 @@ services:
       - db
       - cache
       - seeder
-    deploy:
-      labels:
-        <<: *traefik_disable
 
   seeder:
     <<: *app
@@ -149,7 +131,4 @@ services:
     restart: on-failure
     networks:
       - backend
-    deploy:
-      labels:
-        <<: *traefik_disable
 
