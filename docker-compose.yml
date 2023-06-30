@@ -10,6 +10,16 @@ volumes:
   pgdata:
   opdata:
 
+x-traefik: &traefik
+  traefik.enable: "true"
+  traefik.http.routers.${APP}.rule: Host(`${DOMAIN}`)
+  traefik.http.routers.${APP}.entrypoints: https
+  traefik.http.routers.${APP}.tls: 'true'
+  traefik.http.routers.${APP}.tls.certresolver: leresolver
+  traefik.http.routers.${APP}.service: ${APP}
+  traefik.http.services.${APP}.loadbalancer.server.port: 8080
+  traefik.docker.network: traefik-net
+
 x-op-restart-policy: &restart_policy
   restart: unless-stopped
 x-op-image: &image
@@ -53,8 +63,6 @@ services:
   proxy:
     <<: [*image, *restart_policy]
     command: "./docker/prod/proxy"
-    ports:
-      - "${PORT:-8080}:80"
     environment:
       APP_HOST: web
       OPENPROJECT_RAILS__RELATIVE__URL__ROOT: "${OPENPROJECT_RAILS__RELATIVE__URL__ROOT:-}"
@@ -62,6 +70,8 @@ services:
       - web
     networks:
       - frontend
+    labels:
+      <<: *traefik
 
   web:
     <<: *app
@@ -74,15 +84,7 @@ services:
       - cache
       - seeder
     labels:
-      - autoheal=true
-      - "traefik.enable=true"
-      - "traefik.http.routers.${APP}.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.routers.${APP}.entrypoints=https"
-      - "traefik.http.routers.${APP}.tls=true"
-      - "traefik.http.routers.${APP}.tls.certresolver=leresolver"
-      - "traefik.http.routers.${APP}.service=${APP}"
-      - "traefik.http.services.${APP}.loadbalancer.server.port=8080"
-      - "traefik.docker.network=traefik-net"
+      autoheal: "true"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080${OPENPROJECT_RAILS__RELATIVE__URL__ROOT:-}/health_checks/default"]
       interval: 10s
