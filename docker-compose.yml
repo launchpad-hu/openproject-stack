@@ -1,6 +1,8 @@
 version: "3.7"
 
 networks:
+  traefik-net:
+    external: true
   frontend:
   backend:
 
@@ -16,7 +18,7 @@ x-op-app: &app
   <<: [*image, *restart_policy]
   environment:
     OPENPROJECT_HTTPS: "${OPENPROJECT_HTTPS:-true}"
-    OPENPROJECT_HOST__NAME: "${OPENPROJECT_HOST__NAME:-localhost:8080}"
+    OPENPROJECT_HOST__NAME: "${DOMAIN}"
     OPENPROJECT_HSTS: "${OPENPROJECT_HSTS:-true}"
     RAILS_CACHE_STORE: "memcache"
     OPENPROJECT_CACHE__MEMCACHE__SERVER: "cache:11211"
@@ -73,6 +75,14 @@ services:
       - seeder
     labels:
       - autoheal=true
+      - "traefik.enable=true"
+      - "traefik.http.routers.${APP}.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.${APP}.entrypoints=https"
+      - "traefik.http.routers.${APP}.tls=true"
+      - "traefik.http.routers.${APP}.tls.certresolver=leresolver"
+      - "traefik.http.routers.${APP}.service=${APP}"
+      - "traefik.http.services.${APP}.loadbalancer.server.port=8080"
+      - "traefik.docker.network=traefik-net"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080${OPENPROJECT_RAILS__RELATIVE__URL__ROOT:-}/health_checks/default"]
       interval: 10s
